@@ -3,11 +3,11 @@ webpack-api-mocker
 
 webpack-api-mocker is a [webpack-dev-server](https://github.com/webpack/webpack-dev-server)  middleware that creates mocks for REST APIs. It will be helpful when you try to test your application without the actual REST API server.
 
-**Features:**  
+**Features:**
 
-🔥 Built in support for hot Mocker file replacement.  
-🚀 Quickly and easily configure the API via JSON.  
-🌱 Mock API proxying made simple.  
+🔥 Built in support for hot Mocker file replacement.
+🚀 Quickly and easily configure the API via JSON.
+🌱 Mock API proxying made simple.
 
 ## Installation
 
@@ -20,7 +20,7 @@ npm install webpack-api-mocker --save-dev
 webpack-api-mocker dev support mock, configured in `mocker/index.js`.
 
 you can modify the [http-proxy](https://www.npmjs.com/package/http-proxy) options and add the event listeners by adding the httpProxy configuration
-> ⚠️ The webpack-api-mocker@1.5.5+ config needs to be placed in the directory.  
+> ⚠️ The webpack-api-mocker@1.5.5+ config needs to be placed in the directory.
 
 ```js
 const proxy = {
@@ -44,7 +44,7 @@ const proxy = {
           console.log('proxyReq');
         },
       },
-    },    
+    },
   },
   // =====================
   'GET /api/user': {
@@ -156,6 +156,9 @@ const app = express();
 + apiMocker(app, path.resolve('./mocker/index.js'))
 app.listen(8080);
 ```
+
+## Using with [Koa](https://github.com/koajs/koa)
+
 
 ## Using with [Webpack](https://github.com/webpack/webpack)
 

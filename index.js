@@ -1,3 +1,4 @@
+const Router = require('koa-router');
 const bodyParser = require('body-parser');
 const httpProxy = require('http-proxy');
 const pathToRegexp = require('path-to-regexp');
@@ -66,7 +67,7 @@ module.exports = function (app, watchFile, conf = {}) {
   // 监听文件修改重新加载代码
   // 配置热更新
 
-  app.all('/*', function (req, res, next) {
+  const callback = function (req, res, next) {
     const proxyURL = `${req.method} ${req.path}`;
     const proxyNames = Object.keys(proxyConf);
     const proxyFuzzyMatch = proxyNames.filter(function (kname) {
@@ -135,7 +136,23 @@ module.exports = function (app, watchFile, conf = {}) {
     } else {
       next();
     }
-  });
+  }
+
+  // express
+  if (app.all) {
+    app.all('/*', callback);
+  }
+  // koa
+  else {
+    const router = new Router();
+    router.all('/*', (ctx, next) => {
+      const { req, res } = ctx;
+      callback(req, res, next);
+    })
+    app.use(router.routes());
+  }
+
+
 
   // 释放老模块的资源
   function cleanCache(modulePath) {
