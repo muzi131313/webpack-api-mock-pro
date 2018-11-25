@@ -1,4 +1,3 @@
-const Router = require('koa-router');
 const bodyParser = require('body-parser');
 const httpProxy = require('http-proxy');
 const pathToRegexp = require('path-to-regexp');
@@ -46,7 +45,7 @@ module.exports = function (app, watchFile, conf = {}) {
   const returnCallback = isExpress ? function (req, res, next) {
     next();
   } : function (ctx, next) {
-    next()
+    callbackKOA(ctx, next)
   };
 
   if (!proxy) {
@@ -225,14 +224,6 @@ module.exports = function (app, watchFile, conf = {}) {
   if (isExpress) {
     app.all('/*', callback);
   }
-  // koa
-  else {
-    const router = new Router();
-    router.all('/*', callbackKOA)
-    app.use(router.routes()).use(router.allowedMethods());
-  }
-
-
 
   // 释放老模块的资源
   function cleanCache(modulePath) {

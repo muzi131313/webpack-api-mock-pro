@@ -1,7 +1,7 @@
-webpack-api-mocker
+webpack-api-mocker-pro
 ---
 
-webpack-api-mocker is a [webpack-dev-server](https://github.com/webpack/webpack-dev-server)  middleware that creates mocks for REST APIs. It will be helpful when you try to test your application without the actual REST API server.
+webpack-api-mocker-pro is a [webpack-dev-server](https://github.com/webpack/webpack-dev-server)  middleware that creates mocks for REST APIs. It will be helpful when you try to test your application without the actual REST API server.
 
 **Features:**
 
@@ -12,22 +12,20 @@ webpack-api-mocker is a [webpack-dev-server](https://github.com/webpack/webpack-
 ## Installation
 
 ```bash
-npm install webpack-api-mocker --save-dev
+npm install webpack-api-mocker-pro --save-dev
 ```
 
 ## Usage
 
-webpack-api-mocker dev support mock, configured in `mocker/index.js`.
+webpack-api-mocker-pro dev support mock, configured in `mocker/index.js`.
 
 you can modify the [http-proxy](https://www.npmjs.com/package/http-proxy) options and add the event listeners by adding the httpProxy configuration
-> ⚠️ The webpack-api-mocker@1.5.5+ config needs to be placed in the directory.
 
 ```js
 const proxy = {
   // Priority processing.
   // apiMocker(app, path, option)
   // This is the option parameter setting for apiMocker
-  // webpack-api-mocker@1.5.15 support
   _proxy: {
     proxy: {
       '/repos/*': 'https://api.github.com/',
@@ -107,10 +105,10 @@ module.exports = proxy;
 
 ## Delayed Response
 
-You can use functional tool to enhance mock. [#17](https://github.com/jaywcjlove/webpack-api-mocker/issues/17)
+You can use functional tool to enhance mock.
 
 ```js
-const delay = require('webpack-api-mocker/utils/delay');
+const delay = require('webpack-api-mocker-pro/utils/delay');
 const noProxy = process.env.NO_PROXY === 'true';
 
 const proxy = {
@@ -133,8 +131,6 @@ apiMocker(app, mocker[,proxy])
 
 Multi entry `mocker` file watching
 
->⚠️  The `webpack-api-mocker@1.6.0+` support.
-
 ```js
 const mockerFile = ['./mock/index.js'];
 // or
@@ -149,7 +145,7 @@ apiMocker(app, mockerFile, proxy)
 ```diff
 const path = require('path');
 const express = require('express');
-+ const apiMocker = require('webpack-api-mocker');
++ const apiMocker = require('webpack-api-mocker-pro');
 
 const app = express();
 
@@ -159,6 +155,22 @@ app.listen(8080);
 
 ## Using with [Koa](https://github.com/koajs/koa)
 
+[koa example](example/koa)
+
+To use api mock on your [koa] project, simply your can used as a third middleware on your `index.js` like this:
+
+````
+const path = require('path');
+const Koa = require('koa');
+const apiMocker = require('webpack-api-mocker-pro');
+app.use(
+  apiMocker(
+    app,
+    path.resolve('./mocker/index.js')
+  )
+)
+app.listen(8080);
+````
 
 ## Using with [Webpack](https://github.com/webpack/webpack)
 
@@ -171,7 +183,7 @@ Change your config file to tell the dev server where to look for files: `webpack
 ```diff
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-+ const apiMocker = require('webpack-api-mocker');
++ const apiMocker = require('webpack-api-mocker-pro');
 
 module.exports = {
   entry: {
