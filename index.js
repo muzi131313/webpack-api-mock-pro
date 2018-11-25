@@ -33,6 +33,9 @@ function pathMatch(options) {
 }
 
 module.exports = function (app, watchFile, conf = {}) {
+  // 是否是express
+  const isExpress = app.all;
+
   const watchFiles = Array.isArray(watchFile) ? watchFile : [watchFile];
   if (watchFiles.some(file => !file)) {
     throw new Error('Mocker file does not exist!.');
@@ -41,10 +44,13 @@ module.exports = function (app, watchFile, conf = {}) {
   proxy = getProxy();
 
   if (!proxy) {
-    return function (req, res, next) {
-      next();
-    }
+    return isExpress ? function (req, res, next) {
+        next();
+      } : function (ctx, next) {
+        next()
+      }
   }
+
   const { proxy: proxyConf = {}, changeHost = true, httpProxy: httpProxyConf = {} } = proxy._proxy || conf;
   // 监听配置入口文件所在的目录，一般为认为在配置文件/mock 目录下的所有文件
   const watcher = chokidar.watch(watchFiles.map(watchFile => PATH.dirname(watchFile)));
@@ -67,8 +73,9 @@ module.exports = function (app, watchFile, conf = {}) {
   // 监听文件修改重新加载代码
   // 配置热更新
 
+  // express listen callback
   const callback = function (req, res, next) {
-    const proxyURL = `${req.method} ${req.path}`;
+    const proxyURL = `${req.method} ${req.path || req.url}`;
     const proxyNames = Object.keys(proxyConf);
     const proxyFuzzyMatch = proxyNames.filter(function (kname) {
       const reg = new RegExp('^' + kname.replace(/(:\S*)[^/]/ig, '(\\S*)[^/]').replace(/\/\*$/, ''));
@@ -138,18 +145,89 @@ module.exports = function (app, watchFile, conf = {}) {
     }
   }
 
+  // koa listen callback
+  const callbackKOA = function (ctx, next) {
+    const req = ctx.request;
+    const res = ctx.response;
+    const proxyURL = `${req.method} ${req.path || req.url}`;
+    const proxyNames = Object.keys(proxyConf);
+    const proxyFuzzyMatch = proxyNames.filter(function (kname) {
+      const reg = new RegExp('^' + kname.replace(/(:\S*)[^/]/ig, '(\\S*)[^/]').replace(/\/\*$/, ''));
+      if (kname.startsWith('ALL') || kname.startsWith('/')) {
+        return /\*$/.test(kname) && reg.test(req.path);
+      }
+      return /\*$/.test(kname) && reg.test(proxyURL);
+    });
+    const proxyMatch = proxyNames.filter(function (kname) {
+      return kname === proxyURL;
+    });
+    // 判断下面这种情况的路由
+    // => GET /api/user/:org/:name
+    // => GET /api/:owner/:repo/raw/:ref/*
+    const containMockURL = Object.keys(proxy).filter(function (kname) {
+      const replaceStr = /\*$/.test(kname) ? '' : '$';
+      return (new RegExp('^' + kname.replace(/(:\S*)[^/]/ig, '(\\S*)[^/]') + replaceStr)).test(proxyURL);
+    });
+
+    if (proxy[proxyURL] || (containMockURL && containMockURL.length > 0)) {
+      let bodyParserMethd = bodyParser.json();
+      const contentType = req.get('Content-Type');
+      if (contentType === 'text/plain') {
+        bodyParserMethd = bodyParser.raw({ type: 'text/plain' });
+      } else if (contentType === 'text/html') {
+        bodyParserMethd = bodyParser.text({ type: 'text/html' });
+      } else if (contentType === 'application/x-www-form-urlencoded') {
+        bodyParserMethd = bodyParser.urlencoded({ extended: false });
+      }
+      bodyParserMethd(req, res, function () {
+        const result = proxy[proxyURL] || proxy[containMockURL[0]];
+        if (typeof result === 'function') {
+          // params 参数获取
+          if (containMockURL[0]) {
+            const mockURL = containMockURL[0].split(' ');
+            if (mockURL && mockURL.length === 2 && req.method === mockURL[0]) {
+              const route = pathMatch({
+                sensitive: false,
+                strict: false,
+                end: false,
+              });
+              const match = route(mockURL[1]);
+              req.params = match(parse(req.url).pathname);
+            }
+          }
+          result(ctx, next);
+        } else {
+          ctx.body = result
+        }
+      });
+    } else if (proxyNames.length > 0 && (proxyMatch.length > 0 || proxyFuzzyMatch.length > 0)) {
+      const currentProxy = proxyConf[proxyMatch.length > 0 ? proxyMatch[0] : proxyFuzzyMatch[0]];
+      const url = parse(currentProxy);
+      if (changeHost) {
+        req.headers.host = url.host;
+      }
+
+      const { options: proxyOptions = {}, listeners: proxyListeners = {} } = httpProxyConf;
+
+      Object.keys(proxyListeners).forEach(event => {
+        proxyHTTP.on(event, proxyListeners[event]);
+      });
+
+      proxyHTTP.web(req, res, Object.assign({ target: url.href }, proxyOptions));
+    } else {
+      next();
+    }
+  }
+
   // express
-  if (app.all) {
+  if (isExpress) {
     app.all('/*', callback);
   }
   // koa
   else {
     const router = new Router();
-    router.all('/*', (ctx, next) => {
-      const { req, res } = ctx;
-      callback(req, res, next);
-    })
-    app.use(router.routes());
+    router.all('/*', callbackKOA)
+    app.use(router.routes()).use(router.allowedMethods());
   }
 
 
