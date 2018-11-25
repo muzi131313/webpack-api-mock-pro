@@ -43,12 +43,14 @@ module.exports = function (app, watchFile, conf = {}) {
 
   proxy = getProxy();
 
+  const returnCallback = isExpress ? function (req, res, next) {
+    next();
+  } : function (ctx, next) {
+    next()
+  };
+
   if (!proxy) {
-    return isExpress ? function (req, res, next) {
-        next();
-      } : function (ctx, next) {
-        next()
-      }
+    return returnCallback;
   }
 
   const { proxy: proxyConf = {}, changeHost = true, httpProxy: httpProxyConf = {} } = proxy._proxy || conf;
@@ -249,7 +251,5 @@ module.exports = function (app, watchFile, conf = {}) {
       return Object.assign(proxy, proxyItem);
     }, {})
   }
-  return function (req, res, next) {
-    next();
-  }
+  return returnCallback;
 }
