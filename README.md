@@ -157,7 +157,7 @@ app.listen(8080);
 
 [koa example](example/koa)
 
-To use api mock on your [koa] project, simply your can used as a third middleware on your `index.js` like this:
+To use api mock on your [koa] project, simply you can used as a third middleware on your `index.js` like this:
 
 ````
 const path = require('path');
