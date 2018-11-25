@@ -5,7 +5,12 @@ const apiMocker = require('../../');
 
 const app = new Koa();
 
-apiMocker(app, path.resolve('./mocker/index.js'))
+app.use(
+  apiMocker(
+    app,
+    path.resolve('./mocker/index.js')
+  )
+)
 app.listen(8080);
 console.log('=> http://localhost:8080')
 
